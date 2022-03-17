@@ -1,0 +1,82 @@
+networks:
+  msnetwork:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+services:
+ # Catalog Service 
+  db:
+    image: mongo:focal
+    container_name: nosql-db
+    restart: unless-stopped
+    ports:
+      - 7017:27017
+    volumes:
+      - db:/data/db
+    networks:
+      msnetwork:
+        ipv4_address: 172.20.0.5
+  catalog:
+    depends_on:
+      - db
+    build: 
+      context: ./
+      dockerfile: ./catalog/Dockerfile
+    restart: unless-stopped
+    container_name: catalog
+    ports:
+      - 8002:8002
+    volumes:
+      - ./catalog:/catalog
+    networks:
+      msnetwork:
+        ipv4_address: 172.20.0.6
+    stdin_open: true
+    tty: true
+
+  inventory:
+    depends_on:
+      - db
+    build: 
+      context: ./
+      dockerfile: ./inventory/Dockerfile
+    container_name: inventory
+    ports:
+      - 8003:8003
+    volumes:
+      - ./inventory:/inventory
+    networks:
+      msnetwork:
+        ipv4_address: 172.20.0.7
+    stdin_open: true
+    tty: true
+
+  # Gateway
+  nginx-proxy:
+    build:
+      dockerfile: Dockerfile
+      context: ./proxy
+    container_name: nginx-proxy
+    depends_on:
+      - catalog
+      - inventory
+    ports:
+      - "80:80"
+    networks:
+      msnetwork:
+        ipv4_address: 172.20.0.8
+  gateway:
+    build: 
+      context: ./
+      dockerfile: ./gateway/Dockerfile
+    container_name: gateway-server
+    ports:
+      - 8001:8001
+    volumes:
+      - ./gateway:/gateway
+    networks:
+      msnetwork:
+        ipv4_address: 172.20.0.10
+volumes:
+  db:

@@ -1,0 +1,53 @@
+http:
+  port: 8001
+admin:
+  port: 9876
+  host: 172.20.0.10
+apiEndpoints:
+  item:
+    host: 172.20.0.10
+    paths: ['/catalog', '/catalog/*']
+  inventory:
+    host: 172.20.0.10
+    paths: ['/inventory', '/inventory/*']
+serviceEndpoints:
+  itemService:
+    url: 'http://172.20.0.6:3000'
+  inventoryService:
+    url: 'http://172.20.0.7:3001'
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+pipelines:
+  itemPipeline:
+    apiEndpoints:
+      - item
+    policies:
+     # - key-auth:
+      - proxy:
+        - action:
+            serviceEndpoint: itemService
+            changeOrigin: true
+  inventoryPipeline:
+    apiEndpoints:
+      - inventory
+    policies:
+     # - key-auth:
+      - cors:
+        - action:
+            origin: true
+            credentials: true
+            methods: 'HEAD,PUT,PATCH,POST,DELETE,GET'
+            exposedHeaders : ['allowed-custom-header']
+            allowedHeaders :  '*'
+            preflightContinue : false
+            optionsSuccessStatus  : 204
+      - proxy:
+        - action:
+            serviceEndpoint: inventoryService

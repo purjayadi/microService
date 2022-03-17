@@ -1,1 +1,0 @@
-export * from './Variant.dal'
